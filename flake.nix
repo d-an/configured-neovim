@@ -8,38 +8,55 @@
   };
 
   outputs = { self, nixpkgs, flake-utils, nixvim }:
+    let
+      # Create a proper NixOS module that wraps nixvim
+      nixosModule = { pkgs, ... }: {
+        imports = [
+          nixvim.nixosModules.default  # Import upstream nixvim module
+        ];
+        
+        # Enable nixvim
+        programs.nixvim = {
+          enable = true;
+          imports = [ ./nixvim.nix ];
+        };
+      };
+      
+      # Create a proper Home Manager module
+      homeModule = { pkgs, ... }: {
+        imports = [
+          nixvim.homeModules.default
+        ];
+        
+        # Enable nixvim
+        programs.nixvim = {
+          enable = true;
+          imports = [ ./nixvim.nix ];
+        };
+      };
+    in
     flake-utils.lib.eachDefaultSystem (system:
       let
-        # Build the configured Neovim from the module
         nvim = nixvim.lib.evalNixvim {
           inherit system;
           modules = [ ./nixvim.nix ];
         };
         nvimPackage = nvim.config.build.package;
-
-        # Import nixpkgs for this system (needed for devShells)
         pkgs = nixpkgs.legacyPackages.${system};
       in
       {
-        # Package for installation: nix profile install .
         packages.default = nvimPackage;
-
-        # App for direct execution: nix run .
         apps.default = {
           type = "app";
           program = "${nvimPackage}/bin/nvim";
         };
-
-        # Development shell with nvim available
         devShells.default = pkgs.mkShell {
           packages = [ nvimPackage ];
         };
-        # Export the nixvim module for use in NixOS or Home Manager configurations
-        # Usage: imports = [ your-flake.nixosModules.default ];
-        nixosModules.default = ./nixvim.nix;
-
-        # Usage: imports = [ your-flake.homeModules.default ];
-        homeModules.default = ./nixvim.nix;
-      });
+      }) // {
+        # Export the wrapped modules
+        nixosModules.default = nixosModule;
+        homeModules.default = homeModule;
+      };
 }
 
