@@ -17,37 +17,29 @@
         };
         nvimPackage = nvim.config.build.package;
 
+        # Import nixpkgs for this system (needed for devShells)
+        pkgs = nixpkgs.legacyPackages.${system};
       in
       {
-        # This package installs Neovim with your configuration applied
-        packages = {
-          default = nvimPackage;
+        # Package for installation: nix profile install .
+        packages.default = nvimPackage;
+
+        # App for direct execution: nix run .
+        apps.default = {
+          type = "app";
+          program = "${nvimPackage}/bin/nvim";
         };
 
-        # For direct execution (nix run .)
-        apps = {
-          default = {
-            type = "app";
-            program = "${nvimPackage}/bin/nvim";
-          };
+        # Development shell with nvim available
+        devShells.default = pkgs.mkShell {
+          packages = [ nvimPackage ];
         };
+        # Export the nixvim module for use in NixOS or Home Manager configurations
+        # Usage: imports = [ your-flake.nixosModules.default ];
+        nixosModules.default = ./nixvim.nix;
 
-        # For use with home-manager
-        homeModules = {
-          default = { pkgs, ... }: {
-            programs.nixvim = {
-              enable = true;
-            } // import ./nixvim.nix { pkgs = pkgs; };
-          };
-        };
-
-        # For use with NixOS
-        nixosModules = {
-          default = { pkgs, ... }: {
-            programs.nixvim = {
-              enable = true;
-            } // import ./nixvim.nix { pkgs = pkgs; };
-          };
-        };
+        # Usage: imports = [ your-flake.homeModules.default ];
+        homeModules.default = ./nixvim.nix;
       });
 }
+

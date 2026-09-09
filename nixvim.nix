@@ -5,6 +5,26 @@
 
 { pkgs, ... }:
 {
+  # Bundle external tools that plugins depend on
+  extraPackages = with pkgs; [
+    # Telescope & general utilities
+    ripgrep
+    fd
+    fzf
+    
+    # Git integration (neogit, telescope git files)
+    git
+    lazygit
+    
+    # LSP and language tooling
+    nodejs  # TypeScript LSP, various tools
+    pyright  # Python LSP (already enabled in plugins.lsp)
+    typescript-language-server  # TypeScript LSP
+
+    # Treesitter parsers (optional, nixvim may bundle some)
+    tree-sitter
+  ];
+
   colorschemes.gruvbox.enable = true;
 
   opts = {
@@ -44,6 +64,7 @@
   plugins.lsp = {
     enable = true;
     servers.pyright.enable = true;
+    servers.ts_ls.enable = true;
   };
 
   plugins.cmp = {
@@ -106,3 +127,4 @@
     { mode = "v"; key = "<"; action = "<0gv"; options.desc = "de-indent"; }
   ];
 }
+
